@@ -1,0 +1,126 @@
+{
+  "jsonrpc": "2.0",
+  "id": -1,
+  "result": {
+    "txs": [
+      {
+        "hash": "19669CD8CA035E93E678DD87D9E4612B8C89466CE36E32382F54D7E66D8430B8",
+        "height": "70",
+        "index": 0,
+        "tx_result": {
+          "code": 0,
+          "data": "EiYKJC9jb3Ntb3MuYmFuay52MWJldGExLk1zZ1NlbmRSZXNwb25zZQ==",
+          "log": "",
+          "info": "",
+          "gas_wanted": "92998",
+          "gas_used": "68032",
+          "events": [
+            {
+              "type": "tx",
+              "attributes": [
+                { "key": "fee", "value": "0ustake", "index": true },
+                {
+                  "key": "fee_payer",
+                  "value": "wasm1ga4d4tsxrk6na6ehttwvdfmn2ejy4gwfxpt2m7",
+                  "index": true
+                }
+              ]
+            },
+            {
+              "type": "tx",
+              "attributes": [
+                {
+                  "key": "acc_seq",
+                  "value": "wasm1ga4d4tsxrk6na6ehttwvdfmn2ejy4gwfxpt2m7/2",
+                  "index": true
+                }
+              ]
+            },
+            {
+              "type": "tx",
+              "attributes": [
+                {
+                  "key": "signature",
+                  "value": "h6kPvrqAQQlq++Aa3p8xKybgKILClT8eAGwGlHyH5rMGo1fsdq6WRQdTaae1eaqVgTUIENrBQqfgNT/UUYI2PA==",
+                  "index": true
+                }
+              ]
+            },
+            {
+              "type": "message",
+              "attributes": [
+                {
+                  "key": "action",
+                  "value": "/cosmos.bank.v1beta1.MsgSend",
+                  "index": true
+                },
+                {
+                  "key": "sender",
+                  "value": "wasm1ga4d4tsxrk6na6ehttwvdfmn2ejy4gwfxpt2m7",
+                  "index": true
+                },
+                { "key": "module", "value": "bank", "index": true },
+                { "key": "msg_index", "value": "0", "index": true }
+              ]
+            },
+            {
+              "type": "coin_spent",
+              "attributes": [
+                {
+                  "key": "spender",
+                  "value": "wasm1ga4d4tsxrk6na6ehttwvdfmn2ejy4gwfxpt2m7",
+                  "index": true
+                },
+                { "key": "amount", "value": "10000ustake", "index": true },
+                { "key": "msg_index", "value": "0", "index": true }
+              ]
+            },
+            {
+              "type": "coin_received",
+              "attributes": [
+                {
+                  "key": "receiver",
+                  "value": "wasm12gcpk8rsezs5lfjq2xmp0rd69e6k8gx02u7yv5",
+                  "index": true
+                },
+                { "key": "amount", "value": "10000ustake", "index": true },
+                { "key": "msg_index", "value": "0", "index": true }
+              ]
+            },
+            {
+              "type": "transfer",
+              "attributes": [
+                {
+                  "key": "recipient",
+                  "value": "wasm12gcpk8rsezs5lfjq2xmp0rd69e6k8gx02u7yv5",
+                  "index": true
+                },
+                {
+                  "key": "sender",
+                  "value": "wasm1ga4d4tsxrk6na6ehttwvdfmn2ejy4gwfxpt2m7",
+                  "index": true
+                },
+                { "key": "amount", "value": "10000ustake", "index": true },
+                { "key": "msg_index", "value": "0", "index": true }
+              ]
+            },
+            {
+              "type": "message",
+              "attributes": [
+                {
+                  "key": "sender",
+                  "value": "wasm1ga4d4tsxrk6na6ehttwvdfmn2ejy4gwfxpt2m7",
+                  "index": true
+                },
+                { "key": "msg_index", "value": "0", "index": true }
+              ]
+            }
+          ],
+          "codespace": ""
+        },
+        "tx": "CqUBCosBChwvY29zbW9zLmJhbmsudjFiZXRhMS5Nc2dTZW5kEmsKK3dhc20xZ2E0ZDR0c3hyazZuYTZlaHR0d3ZkZm1uMmVqeTRnd2Z4cHQybTcSK3dhc20xMmdjcGs4cnNlenM1bGZqcTJ4bXAwcmQ2OWU2azhneDAydTd5djUaDwoGdXN0YWtlEgUxMDAwMBIVU2VudCBmcm9tIGNvc215LXdhc215EmUKUApGCh8vY29zbW9zLmNyeXB0by5zZWNwMjU2azEuUHViS2V5EiMKIQJjuKZAsfxXpiw8f9IY77/mPvTG8CcfCp5FYkxQIXD/CBIECgIIARgCEhEKCwoGdXN0YWtlEgEwEMbWBRpAh6kPvrqAQQlq++Aa3p8xKybgKILClT8eAGwGlHyH5rMGo1fsdq6WRQdTaae1eaqVgTUIENrBQqfgNT/UUYI2PA=="
+      }
+    ],
+    "total_count": "1"
+  }
+}
