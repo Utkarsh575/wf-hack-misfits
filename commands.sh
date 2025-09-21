@@ -11,6 +11,15 @@ docker volume rm -f wasmd_data
 
 wasmd query txs --events 'transfer.recipient=<wasm12gcpk8rsezs5lfjq2xmp0rd69e6k8gx02u7yv5>'
 
+
+-- ts-code-gen
+
+cosmwasm-ts-codegen generate --plugin client --schema ./schema --out ../oracle-service/src/sdk  --name oracle
+
+
+
+
+
 --- inside docker exec 
 
 
