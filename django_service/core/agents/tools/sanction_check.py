@@ -5,7 +5,9 @@ from langgraph.types import Command
 from langgraph.prebuilt import InjectedState
 from typing import Annotated
 from langchain_core.messages import ToolMessage
+
 import pandas as pd
+import requests
 
 @tool(parse_docstring= True)
 def check_sanctions(tool_call_id: Annotated[str, InjectedToolCallId], aml_state: Annotated[AmlState, InjectedState]) -> Command:
@@ -18,7 +20,11 @@ def check_sanctions(tool_call_id: Annotated[str, InjectedToolCallId], aml_state:
         aml_state: The current state containing wallet address.
     """
     
-    sanctions_df = pd.read_json("sanctions_list.json", orient= 'records')
+    # Fetch the sanction list from the oracle-service API
+    response = requests.get("http://localhost:8080/sanctions")
+    response.raise_for_status()
+    sanctions_data = response.json()
+    sanctions_df = pd.DataFrame(sanctions_data["sanctioned"])
     current_addresses = [aml_state['wallet_address']]
     analyzed_addresses = set()
 

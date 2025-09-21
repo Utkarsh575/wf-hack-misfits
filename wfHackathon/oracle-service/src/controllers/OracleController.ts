@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import { OracleService } from "../services/OracleService";
+import { ComplianceController } from "./ComplianceController";
 
 export class OracleController {
   static async signReceive(req: Request, res: Response, config: any) {
@@ -23,6 +24,13 @@ export class OracleController {
             error: "Oracle contract address not configured",
           });
       }
+
+      // Compliance check before signature validation
+      const isCompliant = await ComplianceController.isTransactionCompliant(sender);
+      if (!isCompliant) {
+        return res.status(403).json({ success: false, error: "Transaction failed compliance check." });
+      }
+
       const result = await OracleService.signReceive({
         sender,
         amount,
