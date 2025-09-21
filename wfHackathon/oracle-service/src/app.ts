@@ -1,3 +1,4 @@
+import cors from "cors";
 /**
  * @swagger
  * /execute:
@@ -301,6 +302,8 @@ const CONFIG = {
 };
 
 const app = express();
+// Allow CORS for frontend (adjust origin as needed)
+app.use(cors());
 const port = process.env.PORT;
 
 app.use(json());

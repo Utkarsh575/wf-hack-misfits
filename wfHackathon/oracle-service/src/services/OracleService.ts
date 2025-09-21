@@ -88,6 +88,19 @@ export class OracleService {
       undefined,
       coins(amount, denom)
     );
-    return result;
+    // Recursively convert all BigInt values to string
+    function convertBigInts(obj: any): any {
+      if (typeof obj === "bigint") return obj.toString();
+      if (Array.isArray(obj)) return obj.map(convertBigInts);
+      if (obj && typeof obj === "object") {
+        const res: any = {};
+        for (const key of Object.keys(obj)) {
+          res[key] = convertBigInts(obj[key]);
+        }
+        return res;
+      }
+      return obj;
+    }
+    return convertBigInts(result);
   }
 }

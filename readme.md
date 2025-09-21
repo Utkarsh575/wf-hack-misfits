@@ -21,6 +21,13 @@ Here are the corrected request bodies using the proper denom (`"ustake"`):
 
 ---
 
+instantiate contract 
+
+{
+  "oracle_pubkey": "AjrX9BclyF9K8drtbJ+0+FBbGsS4Pg+UjPiYfBT7nRh2",
+  "oracle_key_type": "secp256k1"
+}
+
 ### `/oracle/sign-receive` (POST)
 
 ```json
