@@ -10,6 +10,8 @@ from core.agents.tools.behaviour_check import check_structuring
 from core.agents.models.aml_state import AmlState
 from core.agents.tools.sanction_check import check_sanctions
 from core.agents.tools.risk_score_calculation import compute_risk_score
+from core.agents.tools.layering_check import check_layering
+
 
 load_dotenv()
 model = ChatOpenAI(
@@ -22,7 +24,7 @@ checkpointer = InMemorySaver()
 
 agent = create_react_agent(
     model= model,
-    tools= [check_structuring, check_sanctions, compute_risk_score],
+    tools= [check_structuring, check_sanctions, compute_risk_score,check_layering],
     checkpointer= checkpointer,
     prompt= "Analyze the wallet address for any money laundering behaviour with the help of tools provided Do not call tools in parallel. After all tool calls are done, call the risk_score tool to get the final risk score.",
     state_schema= AmlState
