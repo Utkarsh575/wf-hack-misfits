@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import axios from "axios";
 import {
   Card,
   CardContent,
@@ -52,15 +53,19 @@ import { useToast } from "@/hooks/use-toast";
 
 import { wallets } from "@/lib/utils";
 
+import TransactionNetwork from "@/components/transaction-network";
+
 interface Transaction {
   hash: string;
   timestamp: string;
-  from: string;
-  to: string;
+  from?: string;
+  to?: string;
+  sender?: string;
+  receiver?: string;
   amount: string;
   denom: string;
-  type: string;
-  status: "success" | "failed" | "pending";
+  type?: string;
+  status?: "success" | "failed" | "pending";
 }
 
 interface ChartData {
@@ -77,34 +82,14 @@ interface RiskData {
   color: string;
 }
 
-// Mock data for demonstration
-const generateMockTransactions = (walletAddress: string): Transaction[] => {
-  const mockTxs: Transaction[] = [];
-  const now = new Date();
-
-  for (let i = 0; i < 50; i++) {
-    const date = new Date(now.getTime() - i * 24 * 60 * 60 * 1000);
-    mockTxs.push({
-      hash: `tx_${Math.random().toString(36).substr(2, 9)}`,
-      timestamp: date.toISOString(),
-      from:
-        i % 3 === 0
-          ? walletAddress
-          : `wasm1${Math.random().toString(36).substr(2, 39)}`,
-      to:
-        i % 3 === 0
-          ? `wasm1${Math.random().toString(36).substr(2, 39)}`
-          : walletAddress,
-      amount: (Math.random() * 10000).toFixed(0),
-      denom: "ustake",
-      type: ["send", "receive", "delegate", "undelegate"][
-        Math.floor(Math.random() * 4)
-      ],
-      status: Math.random() > 0.1 ? "success" : "failed",
-    });
-  }
-
-  return mockTxs;
+// Fetch transactions from backend API
+const fetchTransactionsFromApi = async (walletAddress: string) => {
+  const apiUrl =
+    process.env.NEXT_PUBLIC_ORACLE_API_URL || "http://localhost:8080";
+  const response = await axios.get(`${apiUrl}/transactions/${walletAddress}`);
+  // You may need to adjust this mapping based on your backend's response format
+  // Here we assume response.data is an array of transactions
+  return response.data;
 };
 
 const generateChartData = (transactions: Transaction[]): ChartData[] => {
@@ -176,24 +161,20 @@ export default function TransactionAnalytics() {
 
   const fetchTransactionData = async () => {
     setIsLoading(true);
-
     try {
       const selectedWalletData = wallets.find(
         (w) => w.label === selectedWallet
       );
       if (!selectedWalletData) return;
 
-      // In a real implementation, this would call the API
-      // const response = await fetch(`/api/transactions/${selectedWalletData.address}`)
-      // const data = await response.json()
+      // Fetch real transactions from backend
+      const txs = await fetchTransactionsFromApi(selectedWalletData.address);
 
-      // For now, using mock data
-      const mockTransactions = generateMockTransactions(
-        selectedWalletData.address
-      );
-      setTransactions(mockTransactions);
-      setChartData(generateChartData(mockTransactions));
-      setRiskData(generateRiskData(mockTransactions));
+      // Support backend response as { transactions: [...] }
+      const txArray = Array.isArray(txs.transactions) ? txs.transactions : [];
+      setTransactions(txArray);
+      setChartData(generateChartData(txArray));
+      setRiskData(generateRiskData(txArray));
 
       toast({
         title: "Analytics Updated",
@@ -387,10 +368,12 @@ export default function TransactionAnalytics() {
           <CardContent>
             <div className="text-2xl font-bold">
               {formatCurrency(
-                transactions.reduce(
-                  (sum, tx) => sum + Number.parseFloat(tx.amount),
-                  0
-                )
+                Array.isArray(transactions)
+                  ? transactions.reduce((sum, tx) => {
+                      const amt = Number.parseFloat(tx.amount);
+                      return sum + (isNaN(amt) ? 0 : amt);
+                    }, 0)
+                  : 0
               )}
             </div>
             <p className="text-xs text-muted-foreground">USTAKE</p>
@@ -550,7 +533,8 @@ export default function TransactionAnalytics() {
             Recent Transactions
           </CardTitle>
           <CardDescription>
-            Latest transactions for {selectedWallet} wallet
+            Latest transactions for{" "}
+            <span className="font-bold">{selectedWallet}'s'</span> wallet
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -566,38 +550,36 @@ export default function TransactionAnalytics() {
                 </tr>
               </thead>
               <tbody>
-                {transactions.slice(0, 10).map((tx) => (
-                  <tr key={tx.hash} className="border-b hover:bg-muted/50">
-                    <td className="p-2 font-mono text-xs">
-                      {tx.hash.slice(0, 12)}...
-                    </td>
-                    <td className="p-2">
-                      <Badge variant="outline" className="text-xs">
-                        {tx.type}
-                      </Badge>
-                    </td>
-                    <td className="p-2 font-medium">
-                      {formatCurrency(Number.parseFloat(tx.amount))}{" "}
-                      {tx.denom.toUpperCase()}
-                    </td>
-                    <td className="p-2">
-                      <Badge
-                        variant={
-                          tx.status === "success" ? "default" : "destructive"
-                        }
-                        className="text-xs"
-                      >
-                        {tx.status}
-                      </Badge>
-                    </td>
-                    <td className="p-2 text-muted-foreground">
-                      {new Date(tx.timestamp).toLocaleDateString()}
-                    </td>
-                  </tr>
-                ))}
+                {Array.isArray(transactions)
+                  ? transactions.slice(0, 10).map((tx) => (
+                      <tr key={tx.hash} className="border-b hover:bg-muted/50">
+                        <td className="p-2 font-mono text-xs">{tx.hash}</td>
+                        <td className="p-2">
+                          <Badge variant="outline" className="text-xs">
+                            {"transfer"}
+                          </Badge>
+                        </td>
+                        <td className="p-2 font-medium">
+                          {formatCurrency(Number.parseFloat(tx.amount))}{" "}
+                          {tx.denom.toUpperCase()}
+                        </td>
+                        <td className="p-2">
+                          <Badge
+                            variant={"outline"}
+                            className="text-white text-xs bg-teal-700"
+                          >
+                            {"success"}
+                          </Badge>
+                        </td>
+                        <td className="p-2 text-muted-foreground">
+                          {new Date(tx.timestamp).toLocaleDateString()}
+                        </td>
+                      </tr>
+                    ))
+                  : null}
               </tbody>
             </table>
-            {transactions.length === 0 && (
+            {Array.isArray(transactions) && transactions.length === 0 && (
               <div className="text-center py-8 text-muted-foreground">
                 <Activity className="w-8 h-8 mx-auto mb-2 opacity-50" />
                 <p className="text-sm">No transactions found</p>
@@ -606,6 +588,98 @@ export default function TransactionAnalytics() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Transaction Network Graph Visualization */}
+      {Array.isArray(transactions) && transactions.length > 0 && (
+        <div className="mt-8">
+          <h3 className="text-xl font-bold mb-4">Transaction Network Graph</h3>
+          <div className="bg-white rounded-lg border shadow p-4">
+            {/* Build network data from all transactions (API: sender/receiver) */}
+            {(function () {
+              const nodes: any[] = [];
+              const links: any[] = [];
+              const nodeSet = new Set();
+              const CONTRACT_ADDR =
+                "wasm14hj2tavq8fpesdwxxcu44rty3hh90vhujrvcmstl4zr3txmfvw9s0phg4d";
+              transactions.forEach((tx) => {
+                // Use sender/receiver from API, fallback to from/to for compatibility
+                const from = tx.sender || tx.from;
+                const to = tx.receiver || tx.to;
+                if (!from || !to) return; // skip malformed
+                if (typeof from !== "string" || typeof to !== "string") return;
+                if (!nodeSet.has(from)) {
+                  nodes.push({
+                    id: from,
+                    color: from === CONTRACT_ADDR ? "#22c55e" : "#64748b",
+                    size:
+                      from ===
+                      wallets.find((w) => w.label === selectedWallet)?.address
+                        ? 800
+                        : 400,
+                  });
+                  nodeSet.add(from);
+                }
+                if (!nodeSet.has(to)) {
+                  nodes.push({
+                    id: to,
+                    color: to === CONTRACT_ADDR ? "#22c55e" : "#64748b",
+                    size:
+                      to ===
+                      wallets.find((w) => w.label === selectedWallet)?.address
+                        ? 800
+                        : 400,
+                  });
+                  nodeSet.add(to);
+                }
+                links.push({
+                  source: from,
+                  target: to,
+                  color:
+                    (from ===
+                      wallets.find((w) => w.label === selectedWallet)
+                        ?.address &&
+                      to === CONTRACT_ADDR) ||
+                    (to ===
+                      wallets.find((w) => w.label === selectedWallet)
+                        ?.address &&
+                      from === CONTRACT_ADDR)
+                      ? "#22c55e"
+                      : "#64748b",
+                  label: `Hash: ${tx.hash}\nAmount: ${tx.amount} ${
+                    tx.denom
+                  }\nDate: ${new Date(tx.timestamp).toLocaleString()}`,
+                });
+              });
+              // Fallback: if no nodes, add the selected wallet node
+              if (nodes.length === 0) {
+                const mainWallet =
+                  wallets.find((w) => w.label === selectedWallet)?.address ||
+                  "";
+                if (mainWallet) {
+                  nodes.push({ id: mainWallet, color: "#64748b", size: 800 });
+                }
+              }
+              if (nodes.length === 0) {
+                return (
+                  <div className="text-center text-muted-foreground">
+                    No valid transactions to visualize.
+                  </div>
+                );
+              }
+              return (
+                <TransactionNetwork
+                  data={{ nodes, links }}
+                  mainWallet={
+                    wallets.find((w) => w.label === selectedWallet)?.address ||
+                    ""
+                  }
+                  contractAddress={CONTRACT_ADDR}
+                />
+              );
+            })()}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

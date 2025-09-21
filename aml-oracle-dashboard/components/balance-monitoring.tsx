@@ -18,6 +18,7 @@ import {
   TrendingUp,
   DollarSign,
   AlertCircle,
+  Loader2,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { wallets } from "@/lib/utils";
@@ -76,7 +77,6 @@ export default function BalanceMonitoring() {
     }));
 
     try {
-      // Use backend endpoint as defined in app.ts: /contract-balance?address=...
       const response = await axios.get(
         `${
           process.env.NEXT_PUBLIC_ORACLE_API_URL || "http://localhost:8080"
@@ -85,12 +85,13 @@ export default function BalanceMonitoring() {
       );
       const data = response.data;
 
-      setContractBalance({
+      setContractBalance((prev) => ({
+        ...prev,
         address: data.address,
         balances: data.balances || [],
         lastUpdated: new Date().toISOString(),
         isLoading: false,
-      });
+      }));
 
       if (showToast) {
         toast({
@@ -133,11 +134,10 @@ export default function BalanceMonitoring() {
         isLoading: false,
       };
       updated.set(address, { ...current, isLoading: true, error: undefined });
-      return updated;
+      return new Map(updated);
     });
 
     try {
-      // Use backend endpoint as defined in app.ts: /wallet-balance?address=...
       const response = await axios.get(
         `${
           process.env.NEXT_PUBLIC_ORACLE_API_URL || "http://localhost:8080"
@@ -154,7 +154,7 @@ export default function BalanceMonitoring() {
           lastUpdated: new Date().toISOString(),
           isLoading: false,
         });
-        return updated;
+        return new Map(updated);
       });
 
       if (showToast) {
@@ -185,7 +185,7 @@ export default function BalanceMonitoring() {
           isLoading: false,
           error: errorMessage,
         });
-        return updated;
+        return new Map(updated);
       });
 
       if (showToast) {
@@ -257,12 +257,17 @@ export default function BalanceMonitoring() {
         </Button>
       </CardHeader>
       <CardContent>
-        {data.error ? (
+        {data.isLoading ? (
+          <div className="flex flex-col items-center justify-center py-6">
+            <Loader2 className="w-6 h-6 animate-spin text-blue-400 mb-2" />
+            <span className="text-xs text-muted-foreground">Loading...</span>
+          </div>
+        ) : data.error ? (
           <div className="flex items-center gap-2 text-destructive">
             <AlertCircle className="w-4 h-4" />
             <span className="text-sm">{data.error}</span>
           </div>
-        ) : data.balances.length === 0 && !data.isLoading ? (
+        ) : data.balances.length === 0 ? (
           <div className="text-muted-foreground text-sm">No balance data</div>
         ) : (
           <div className="space-y-2">
@@ -290,7 +295,7 @@ export default function BalanceMonitoring() {
             )}
           </div>
         )}
-        {data.lastUpdated && (
+        {data.lastUpdated && !data.isLoading && (
           <p className="text-xs text-muted-foreground mt-2">
             Last updated: {new Date(data.lastUpdated).toLocaleTimeString()}
           </p>
