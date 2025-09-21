@@ -21,7 +21,7 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 pub struct InstantiateMsg {
-    pub oracle_pubkey: Binary,
+    pub oracle_pubkey: String, // base64-encoded compressed pubkey
     pub oracle_key_type: String, // "secp256k1" or "ed25519"
 }
 
@@ -29,8 +29,15 @@ pub struct InstantiateMsg {
 #[serde(rename_all = "snake_case")]
 pub enum ExecuteMsg {
     Send { recipient: String },
-    OracleDataUpdate { data: String, signature: Binary },
-    UpdateOracle { new_pubkey: Binary, new_key_type: Option<String> },
+    OracleDataUpdate { data: String, signature: String },
+    UpdateOracle { new_pubkey: String, new_key_type: Option<String> },
+    /// Receive tokens with oracle AML approval signature
+    ReceiveWithApproval {
+        sender: String,
+        amount: String,
+        signature: String, // base64-encoded signature
+        nonce: String,
+    },
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
