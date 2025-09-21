@@ -13,3 +13,11 @@ pub fn parse_key_type(s: &str) -> Option<&'static str> {
         _ => None,
     }
 }
+
+/// Parses a comma-separated list of blocked addresses from the oracle data string.
+pub fn parse_blocked_addresses(data: &str) -> Vec<String> {
+    data.split(',')
+        .map(|s| s.trim().to_string())
+        .filter(|s| !s.is_empty())
+        .collect()
+}

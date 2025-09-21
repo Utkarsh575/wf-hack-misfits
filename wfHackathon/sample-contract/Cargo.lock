@@ -832,7 +832,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9120690fafc389a67ba3803df527d0ec9cbbc9cc45e4cc20b332996dfb672425"
 dependencies = [
  "anyhow",
- "itertools 0.14.0",
+ "itertools 0.10.5",
  "proc-macro2",
  "quote",
  "syn 2.0.106",
@@ -947,6 +947,7 @@ checksum = "28d3b2b1366ec20994f1fd18c3c594f05c5dd4bc44d8bb0c1c632c8d6829481f"
 name = "sample-contract"
 version = "0.1.0"
 dependencies = [
+ "base64",
  "cosmwasm-schema",
  "cosmwasm-std",
  "cw-multi-test",
