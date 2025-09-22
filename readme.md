@@ -1,4 +1,4 @@
-# 🚀 Project Name: AI-Powered Oracle Compliance System for AML Smart Contract checks for Non-Custodial Wallets 🌟
+# 🚀 Project Name: AI-Powered Oracle Compliance System for AML Smart Contract checks🌟
 
 ## Description
 
