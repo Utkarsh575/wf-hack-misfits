@@ -1,4 +1,7 @@
 
+# 🚀 Project Name: AI-Powered Oracle Compliance System for AML Smart Contract checks🌟
+
+
 ## Description
 
 This project implements an AI-powered oracle and anti-money laundering (AML) compliance system for blockchain custodial wallets. The system enables smart contracts associated with custodial wallets to perform only approved transactions, ensuring that any non-custodial wallet suspected of money laundering cannot transact with custodial wallets. The architecture leverages a multi-agent AML checker using LangGraph and OpenAI, a Django service for on-chain data analysis, and an oracle service that signs or blocks transactions based on compliance checks.
