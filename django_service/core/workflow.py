@@ -24,28 +24,40 @@ checkpointer = InMemorySaver()
 
 agent = create_react_agent(
     model= model,
-    tools= [check_structuring, check_sanctions, compute_risk_score,check_layering],
+    tools= [check_structuring, check_sanctions, compute_risk_score],
     checkpointer= checkpointer,
-    prompt= "Analyze the wallet address for any money laundering behaviour with the help of tools provided Do not call tools in parallel. After all tool calls are done, call the risk_score tool to get the final risk score.",
+    prompt= "Analyze the wallet address for any money laundering behavior with the help of tools provided Do not call tools in parallel. You are getting the transaction details, mixers, sanctioned wallets. you have to perform layering analysis, behavior_check and sanction_check After all tool calls are done, call the risk_score tool to get the final risk score.",
     state_schema= AmlState
 )
 
 config = {"configurable": {"thread_id": "1"}}
 
+
 def invoke_agent(wallet_address: str):
     response = agent.invoke(
         {"wallet_address": wallet_address, "max_hops": 1, "risk_score": 0.0},
-        config= config
+        config=config
     )
 
-    # Agent may return numeric types as float/str; coerce to int defensively
+    # Extract risk score
     raw_score = response.get('risk_score', 0)
     try:
         risk_score = int(float(raw_score))
     except Exception:
         risk_score = 0
 
-    return risk_score
+    # Collect failed checks from tool messages
+    failed_checks = []
+    tool_messages = response.get('messages', [])
+    for msg in tool_messages:
+        if isinstance(msg, dict):
+            content = msg.get('content', '')
+        else:
+            content = getattr(msg, 'content', '')
+        if 'detected' in content or 'detected for address' in content or 'cycles detected' in content:
+            failed_checks.append(content)
+
+    return risk_score, failed_checks
  
 
 

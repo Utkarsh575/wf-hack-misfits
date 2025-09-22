@@ -197,12 +197,24 @@ export default function TransactionAnalytics() {
     return value.toFixed(0);
   };
 
-  const CustomTooltip = ({ active, payload, label }: any) => {
+  const CustomTooltip = ({
+    active,
+    payload,
+    label,
+  }: {
+    active?: boolean;
+    payload?: Array<{
+      color: string;
+      dataKey: string;
+      value: number;
+    }>;
+    label?: string;
+  }) => {
     if (active && payload && payload.length) {
       return (
         <div className="bg-card border rounded-lg p-3 shadow-lg">
           <p className="font-medium">{`Date: ${label}`}</p>
-          {payload.map((entry: any, index: number) => (
+          {payload.map((entry, index) => (
             <p key={index} style={{ color: entry.color }}>
               {`${entry.dataKey}: ${
                 entry.dataKey === "volume"
@@ -309,6 +321,75 @@ export default function TransactionAnalytics() {
     }
   };
 
+  const processTransactionsToGraphData = (transactions: Transaction[]) => {
+    const nodeMap = new Map<
+      string,
+      { id: string; label: string; type: string; transactions: Transaction[] }
+    >();
+    const links: Array<{
+      source: string;
+      target: string;
+      transactions: Transaction[];
+    }> = [];
+
+    // Create nodes for unique addresses
+    transactions.forEach((tx) => {
+      const sender = tx.sender || tx.from || "";
+      const receiver = tx.receiver || tx.to || "";
+
+      if (sender && !nodeMap.has(sender)) {
+        nodeMap.set(sender, {
+          id: sender,
+          label: sender.substring(0, 8) + "...",
+          type: "wallet",
+          transactions: [],
+        });
+      }
+
+      if (receiver && !nodeMap.has(receiver)) {
+        nodeMap.set(receiver, {
+          id: receiver,
+          label: receiver.substring(0, 8) + "...",
+          type: "wallet",
+          transactions: [],
+        });
+      }
+
+      // Add transaction to sender and receiver nodes
+      if (sender) nodeMap.get(sender)?.transactions.push(tx);
+      if (receiver) nodeMap.get(receiver)?.transactions.push(tx);
+    });
+
+    // Create links between nodes
+    const linkMap = new Map<string, Transaction[]>();
+    transactions.forEach((tx) => {
+      const sender = tx.sender || tx.from || "";
+      const receiver = tx.receiver || tx.to || "";
+
+      if (sender && receiver) {
+        const linkKey = `${sender}-${receiver}`;
+        if (!linkMap.has(linkKey)) {
+          linkMap.set(linkKey, []);
+        }
+        linkMap.get(linkKey)?.push(tx);
+      }
+    });
+
+    linkMap.forEach((txs, linkKey) => {
+      const [source, target] = linkKey.split("-");
+      links.push({
+        source,
+        target,
+        transactions: txs,
+      });
+    });
+
+    return {
+      nodes: Array.from(nodeMap.values()),
+      links,
+    };
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -344,6 +425,86 @@ export default function TransactionAnalytics() {
           </Button>
         </div>
       </div>
+
+      {/* Recent Transactions Table */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Activity className="w-5 h-5" />
+            Recent Transactions
+          </CardTitle>
+          <CardDescription>
+            Latest transactions for{" "}
+            <span className="font-bold">{selectedWallet}s</span> wallet
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b">
+                  <th className="text-left p-2">Hash</th>
+                  <th className="text-left p-2">From</th>
+                  <th className="text-left p-2">To</th>
+                  <th className="text-left p-2">Amount</th>
+                  <th className="text-left p-2">Status</th>
+                  <th className="text-left p-2">Date</th>
+                </tr>
+              </thead>
+              <tbody>
+                {Array.isArray(transactions)
+                  ? transactions.slice(0, 10).map((tx) => (
+                      <tr key={tx.hash} className="border-b hover:bg-muted/50">
+                        <td className="p-2 font-mono text-xs">
+                          {tx.hash.substring(0, 16)}...
+                        </td>
+                        <td className="p-2 font-mono text-xs">
+                          {tx.sender?.substring(0, 8)}...
+                        </td>
+                        <td className="p-2 font-mono text-xs">
+                          {tx.receiver?.substring(0, 8)}...
+                        </td>
+                        <td className="p-2 font-medium">
+                          {formatCurrency(Number.parseFloat(tx.amount))}{" "}
+                          {tx.denom.toUpperCase()}
+                        </td>
+                        <td className="p-2">
+                          <Badge
+                            variant={"outline"}
+                            className="text-white text-xs bg-teal-700"
+                          >
+                            {"success"}
+                          </Badge>
+                        </td>
+                        <td className="p-2 text-muted-foreground">
+                          {new Date(tx.timestamp).toLocaleDateString()}
+                        </td>
+                      </tr>
+                    ))
+                  : null}
+              </tbody>
+            </table>
+            {Array.isArray(transactions) && transactions.length === 0 && (
+              <div className="text-center py-8 text-muted-foreground">
+                <Activity className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                <p className="text-sm">No transactions found</p>
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Transaction Network Graph Visualization */}
+      {Array.isArray(transactions) && transactions.length > 0 && (
+        <TransactionNetwork
+          data={processTransactionsToGraphData(transactions)}
+          mainWallet={
+            wallets.find((w) => w.label === selectedWallet)?.address || ""
+          }
+          contractAddress="wasm14hj2tavq8fpesdwxxcu44rty3hh90vhujrvcmstl4zr3txmfvw9s0phg4d"
+          transactions={transactions}
+        />
+      )}
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -424,6 +585,7 @@ export default function TransactionAnalytics() {
         </Card>
       </div>
 
+      {/* Charts and metrics */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Transaction Volume Chart */}
         <Card className="lg:col-span-2">
@@ -524,162 +686,6 @@ export default function TransactionAnalytics() {
           </CardContent>
         </Card>
       </div>
-
-      {/* Recent Transactions Table */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Activity className="w-5 h-5" />
-            Recent Transactions
-          </CardTitle>
-          <CardDescription>
-            Latest transactions for{" "}
-            <span className="font-bold">{selectedWallet}'s'</span> wallet
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b">
-                  <th className="text-left p-2">Hash</th>
-                  <th className="text-left p-2">Type</th>
-                  <th className="text-left p-2">Amount</th>
-                  <th className="text-left p-2">Status</th>
-                  <th className="text-left p-2">Date</th>
-                </tr>
-              </thead>
-              <tbody>
-                {Array.isArray(transactions)
-                  ? transactions.slice(0, 10).map((tx) => (
-                      <tr key={tx.hash} className="border-b hover:bg-muted/50">
-                        <td className="p-2 font-mono text-xs">{tx.hash}</td>
-                        <td className="p-2">
-                          <Badge variant="outline" className="text-xs">
-                            {"transfer"}
-                          </Badge>
-                        </td>
-                        <td className="p-2 font-medium">
-                          {formatCurrency(Number.parseFloat(tx.amount))}{" "}
-                          {tx.denom.toUpperCase()}
-                        </td>
-                        <td className="p-2">
-                          <Badge
-                            variant={"outline"}
-                            className="text-white text-xs bg-teal-700"
-                          >
-                            {"success"}
-                          </Badge>
-                        </td>
-                        <td className="p-2 text-muted-foreground">
-                          {new Date(tx.timestamp).toLocaleDateString()}
-                        </td>
-                      </tr>
-                    ))
-                  : null}
-              </tbody>
-            </table>
-            {Array.isArray(transactions) && transactions.length === 0 && (
-              <div className="text-center py-8 text-muted-foreground">
-                <Activity className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                <p className="text-sm">No transactions found</p>
-              </div>
-            )}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Transaction Network Graph Visualization */}
-      {Array.isArray(transactions) && transactions.length > 0 && (
-        <div className="mt-8">
-          <h3 className="text-xl font-bold mb-4">Transaction Network Graph</h3>
-          <div className="bg-white rounded-lg border shadow p-4">
-            {/* Build network data from all transactions (API: sender/receiver) */}
-            {(function () {
-              const nodes: any[] = [];
-              const links: any[] = [];
-              const nodeSet = new Set();
-              const CONTRACT_ADDR =
-                "wasm14hj2tavq8fpesdwxxcu44rty3hh90vhujrvcmstl4zr3txmfvw9s0phg4d";
-              transactions.forEach((tx) => {
-                // Use sender/receiver from API, fallback to from/to for compatibility
-                const from = tx.sender || tx.from;
-                const to = tx.receiver || tx.to;
-                if (!from || !to) return; // skip malformed
-                if (typeof from !== "string" || typeof to !== "string") return;
-                if (!nodeSet.has(from)) {
-                  nodes.push({
-                    id: from,
-                    color: from === CONTRACT_ADDR ? "#22c55e" : "#64748b",
-                    size:
-                      from ===
-                      wallets.find((w) => w.label === selectedWallet)?.address
-                        ? 800
-                        : 400,
-                  });
-                  nodeSet.add(from);
-                }
-                if (!nodeSet.has(to)) {
-                  nodes.push({
-                    id: to,
-                    color: to === CONTRACT_ADDR ? "#22c55e" : "#64748b",
-                    size:
-                      to ===
-                      wallets.find((w) => w.label === selectedWallet)?.address
-                        ? 800
-                        : 400,
-                  });
-                  nodeSet.add(to);
-                }
-                links.push({
-                  source: from,
-                  target: to,
-                  color:
-                    (from ===
-                      wallets.find((w) => w.label === selectedWallet)
-                        ?.address &&
-                      to === CONTRACT_ADDR) ||
-                    (to ===
-                      wallets.find((w) => w.label === selectedWallet)
-                        ?.address &&
-                      from === CONTRACT_ADDR)
-                      ? "#22c55e"
-                      : "#64748b",
-                  label: `Hash: ${tx.hash}\nAmount: ${tx.amount} ${
-                    tx.denom
-                  }\nDate: ${new Date(tx.timestamp).toLocaleString()}`,
-                });
-              });
-              // Fallback: if no nodes, add the selected wallet node
-              if (nodes.length === 0) {
-                const mainWallet =
-                  wallets.find((w) => w.label === selectedWallet)?.address ||
-                  "";
-                if (mainWallet) {
-                  nodes.push({ id: mainWallet, color: "#64748b", size: 800 });
-                }
-              }
-              if (nodes.length === 0) {
-                return (
-                  <div className="text-center text-muted-foreground">
-                    No valid transactions to visualize.
-                  </div>
-                );
-              }
-              return (
-                <TransactionNetwork
-                  data={{ nodes, links }}
-                  mainWallet={
-                    wallets.find((w) => w.label === selectedWallet)?.address ||
-                    ""
-                  }
-                  contractAddress={CONTRACT_ADDR}
-                />
-              );
-            })()}
-          </div>
-        </div>
-      )}
     </div>
   );
 }

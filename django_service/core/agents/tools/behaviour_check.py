@@ -21,6 +21,8 @@ def check_structuring(tool_call_id: Annotated[str, InjectedToolCallId], aml_stat
     """
 
     transactions = fetch_transactions(aml_state['wallet_address'])
+    print("behaviour_check.py - fetched transactions:")
+    print(transactions)
     transactions['amount'] = pd.to_numeric(transactions['amount'], errors= 'coerce')
     filtered_inputs = transactions[(transactions['amount'] < 10000) & (transactions['sender'] == aml_state['wallet_address'])]
 

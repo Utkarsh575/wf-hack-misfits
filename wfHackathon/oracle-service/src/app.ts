@@ -287,6 +287,7 @@ import dotenv from "dotenv";
 import errorHandler from "./errorMiddleware";
 import { OracleController } from "./controllers/OracleController";
 import { ComplianceController } from "./controllers/ComplianceController";
+import axios from "axios";
 import { TxController } from "./controllers/TxController";
 import { BalanceController } from "./controllers/BalanceController";
 import { WalletTransferController } from "./controllers/WalletTransferController";
@@ -317,6 +318,7 @@ app.post("/wallet-transfer", WalletTransferController.transfer);
 const port = process.env.PORT;
 
 // Oracle endpoints
+// Modular: compliance check is handled in OracleController
 app.post("/oracle/sign-receive", (req, res) =>
   OracleController.signReceive(req, res, CONFIG)
 );
