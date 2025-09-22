@@ -32,13 +32,8 @@ The system ensures that custodial wallets are protected from receiving funds fro
 
 ## 🎥 Demo
 
-🔗 [Live Demo](#) (if applicable)  
-📹 [Video Demo](#) (if applicable)  
+📹 [Video Demo](https://drive.google.com/file/d/11JfF_uPDtAgy9pnAbgpkDVG6YlhL0XNT/view?usp=sharing)  
 🖼️ Screenshots:
-[Screenshot 1](link-to-image)
-
----
-
 Here are some screenshots of the application:
 
 1. **Dashboard**:
@@ -206,7 +201,7 @@ See the [How We Built It](#how-we-built-it) section above for setup and run inst
 
 ## 👥 Team
 
-- **Utkarsh** _(Program Associate)_ - [GitHub](https://github.com/Utkarsh575) | [LinkedIn](https://www.linkedin.com/in/utkarsh575)
+- **Utkarsh U** _(Program Associate)_ - [GitHub](https://github.com/Utkarsh575) | [LinkedIn](https://www.linkedin.com/in/utkarsh575)
 - **Anvit Pawar** _(Program Associate)_ - [GitHub](https://github.com/anvitpawar) | [LinkedIn](https://www.linkedin.com/in/anvit-pawar-b7602aba)
 - **Aniket Saxena** _(Program Associate)_ - [GitHub](https://github.com/aniket3012) | [LinkedIn](https://www.linkedin.com/in/aniket-saxena-61333221a/)
-- **Yash Solani** _(Program Associate)_ - [GitHub](https://github.com/Yash-Dev-Solanki) | [LinkedIn](https://www.linkedin.com/in/yash-solanki-8a73a022a/)
+- **Yash Solanki** _(Program Associate)_ - [GitHub](https://github.com/Yash-Dev-Solanki) | [LinkedIn](https://www.linkedin.com/in/yash-solanki-8a73a022a/)
