@@ -37,13 +37,18 @@ The system ensures that custodial wallets are protected from receiving funds fro
 Here are some screenshots of the application:
 
 1. **Dashboard**:
-   ![Dashboard Screenshot](https://via.placeholder.com/800x400?text=Dashboard+Screenshot)
+   <img width="1280" height="720" alt="image" src="https://github.com/user-attachments/assets/3e6a2358-b46f-4e6b-8df8-78640d17e9ca" />
+
 
 2. **Compliance Failure UI**:
-   ![Compliance Failure Screenshot](https://via.placeholder.com/800x400?text=Compliance+Failure+UI)
+ <img width="1280" height="722" alt="image" src="https://github.com/user-attachments/assets/9ddbedfa-918e-43d9-8428-834c1ec5991f" />
+ <img width="1280" height="728" alt="image" src="https://github.com/user-attachments/assets/cf11192f-4a6f-4d68-ae9c-48c6cd3a5654" />
+
+
 
 3. **Transaction Network Graph**:
-   ![Transaction Network Screenshot](https://via.placeholder.com/800x400?text=Transaction+Network+Screenshot)
+   <img width="1280" height="720" alt="image" src="https://github.com/user-attachments/assets/76114d97-8801-47f2-a1ad-5d2c7680de9f" />
+
 
 ## 💡 Inspiration
 
