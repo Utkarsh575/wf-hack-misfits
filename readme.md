@@ -1,4 +1,3 @@
-# 🚀 Project Name: AML Smart Contract checks for Non-Custodial Wallets using Oracle & Google datasets
 
 ## Description
 
