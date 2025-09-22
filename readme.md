@@ -1,4 +1,4 @@
-# 🚀 Project Name: AI Orchestration for Email & Document Triage Routing🌟
+# 🚀 Project Name: AI-Powered Oracle Compliance System for AML Smart Contract checks for Non-Custodial Wallets 🌟
 
 ## Description
 
