@@ -1,4 +1,4 @@
-# 🚀 Project Name: AI Orchestration for Email & Document Triage Routing🌟
+# 🚀 Project Name: AML Smart Contract checks for Non-Custodial Wallets using Oracle & Google datasets
 
 ## Description
 
@@ -40,19 +40,44 @@ Here are some screenshots of the application:
    <img width="1280" height="720" alt="image" src="https://github.com/user-attachments/assets/3e6a2358-b46f-4e6b-8df8-78640d17e9ca" />
 
 
-2. **Compliance Failure UI**:
- <img width="1280" height="722" alt="image" src="https://github.com/user-attachments/assets/9ddbedfa-918e-43d9-8428-834c1ec5991f" />
- <img width="1280" height="728" alt="image" src="https://github.com/user-attachments/assets/cf11192f-4a6f-4d68-ae9c-48c6cd3a5654" />
+2. **Address Management**:
+   <img width="1280" height="725" alt="image" src="https://github.com/user-attachments/assets/2c1c1b7c-f623-4489-bfbb-d2324efb9590" />
+
+   <img width="1280" height="725" alt="image" src="https://github.com/user-attachments/assets/7855a687-8550-4ba3-8326-cd903e1ba017" />
+
+3. **Transaction Execution**:
+   <img width="1280" height="724" alt="image" src="https://github.com/user-attachments/assets/67546ac0-92b3-4be6-b934-134e45041f94" />
+
+4. **Balance Monitoring**:
+   <img width="1280" height="723" alt="image" src="https://github.com/user-attachments/assets/8d36b15d-20bc-4587-a7a2-c765e87c378b" />
+
+   <img width="1280" height="725" alt="image" src="https://github.com/user-attachments/assets/2005509c-e81b-4ae2-8075-289fa2430302" />
+
+5. **Transaction Analytics**
+   <img width="1280" height="719" alt="image" src="https://github.com/user-attachments/assets/961b5585-537d-487d-aecd-9a2575c59e83" />
+
+   <img width="1280" height="723" alt="image" src="https://github.com/user-attachments/assets/c7579e13-88ee-4786-b169-ad4160aa0c34" />
+
+
+6. **Transfer**
+   <img width="1280" height="722" alt="image" src="https://github.com/user-attachments/assets/939b0bcd-073d-4c00-a2a6-26c3f586094b" />
 
 
 
-3. **Transaction Network Graph**:
+7. **Compliance Failure UI**:
+   <img width="1280" height="722" alt="image" src="https://github.com/user-attachments/assets/9ddbedfa-918e-43d9-8428-834c1ec5991f" />
+ 
+   <img width="1280" height="728" alt="image" src="https://github.com/user-attachments/assets/cf11192f-4a6f-4d68-ae9c-48c6cd3a5654" />
+
+
+
+8. **Transaction Network Graph**:
    <img width="1280" height="720" alt="image" src="https://github.com/user-attachments/assets/76114d97-8801-47f2-a1ad-5d2c7680de9f" />
 
 
 ## 💡 Inspiration
 
-This project was created during the [Technology Hackathon 2025] to showcase how AI-driven compliance and blockchain oracles can improve the security and regulatory compliance of custodial wallets and smart contracts.
+This project was created during the D.A.T.A Innovation Showcase Hackathon to showcase how AI-driven compliance and blockchain oracles can improve the security and regulatory compliance of custodial wallets and smart contracts.
 
 ## ⚙️ What It Does
 
