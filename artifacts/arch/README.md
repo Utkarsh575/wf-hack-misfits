@@ -8,6 +8,8 @@ This document describes the architecture and design of the AI-powered oracle and
 
 ## High-Level Architecture
 
+<img width="545" height="545" alt="Screenshot 2025-09-22 at 12 25 00 PM" src="https://github.com/user-attachments/assets/6f13eb73-8d78-4175-a96b-74f5b230d417" />
+
 ```mermaid
 flowchart TD
     subgraph User
@@ -59,6 +61,7 @@ flowchart TD
 ---
 
 ## Signature Generation & Compliance Flow
+<img width="820" height="403" alt="image" src="https://github.com/user-attachments/assets/535722b3-83f8-4c42-930b-97f7cd61abfc" />
 
 ```mermaid
 sequenceDiagram
@@ -80,6 +83,8 @@ sequenceDiagram
 ---
 
 ## Multi-Agent AML Analysis (Django Service)
+
+<img width="945" height="258" alt="Screenshot 2025-09-22 at 12 26 00 PM" src="https://github.com/user-attachments/assets/12e0f6cc-ab00-4a9c-80cc-83fbb783d2e1" />
 
 ```mermaid
 flowchart LR
@@ -109,6 +114,7 @@ flowchart LR
 ---
 
 ## Deployment Diagram
+<img width="658" height="556" alt="Screenshot 2025-09-22 at 12 26 24 PM" src="https://github.com/user-attachments/assets/c8aeaa66-4f70-4e14-9afb-8e89f5df3b22" />
 
 ```mermaid
 graph TD
@@ -151,4 +157,3 @@ graph TD
 
 ## Architecture Diagram (Image)
 
-If required, export the above mermaid diagrams to PNG/JPEG for presentations or documentation.
