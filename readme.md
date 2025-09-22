@@ -140,7 +140,13 @@ ORACLE_API_URL=http://localhost:8080
    git clone <repo-url>
    cd wf-hack-test
    ```
-2. **Set Up Python Backend (Django AML Service)**:
+2. **Set Up Local Cosmos SDK Blockchain (Docker)**:
+   ```bash
+   chmod +x start.sh
+   ./start.sh
+   ```
+   This will set up and start a local Cosmos SDK blockchain using Docker.
+3. **Set Up Python Backend (Django AML Service)**:
    ```bash
    cd code/src/django_service
    python3 -m venv venv
@@ -148,16 +154,16 @@ ORACLE_API_URL=http://localhost:8080
    pip install -r requirements.txt
    uvicorn django_service.asgi:application --host 0.0.0.0 --port 8000 --workers 4
    ```
-3. **Set Up Oracle Service**:
+4. **Set Up Oracle Service**:
    ```bash
    cd ../oracle-service
    npm install
    npm run dev
    ```
-4. **Deploy/Instantiate Smart Contract**:
+5. **Deploy/Instantiate Smart Contract**:
    (See contract folder for instructions)
 
-5. **Access the Dashboard**:
+6. **Access the Dashboard**:
    ```bash
    cd ../aml-oracle-dashboard
    pnpm i
@@ -200,5 +206,7 @@ See the [How We Built It](#how-we-built-it) section above for setup and run inst
 
 ## 👥 Team
 
-- **Your Name** - [GitHub](#) | [LinkedIn](#)
-- **Teammate 2** - [GitHub](#) | [LinkedIn](#)
+- **Utkarsh** _(Program Associate)_ - [GitHub](https://github.com/Utkarsh575) | [LinkedIn](https://www.linkedin.com/in/utkarsh575)
+- **Anvit Pawar** _(Program Associate)_ - [GitHub](https://github.com/anvitpawar) | [LinkedIn](https://www.linkedin.com/in/anvit-pawar-b7602aba)
+- **Aniket Saxena** _(Program Associate)_ - [GitHub](https://github.com/aniket3012) | [LinkedIn](https://www.linkedin.com/in/aniket-saxena-61333221a/)
+- **Yash Solani** _(Program Associate)_ - [GitHub](https://github.com/Yash-Dev-Solanki) | [LinkedIn](https://www.linkedin.com/in/yash-solanki-8a73a022a/)
