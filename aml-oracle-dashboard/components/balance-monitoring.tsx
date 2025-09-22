@@ -18,6 +18,7 @@ import {
   TrendingUp,
   DollarSign,
   AlertCircle,
+  Loader2,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { wallets } from "@/lib/utils";
@@ -76,7 +77,6 @@ export default function BalanceMonitoring() {
     }));
 
     try {
-      // Use backend endpoint as defined in app.ts: /contract-balance?address=...
       const response = await axios.get(
         `${
           process.env.NEXT_PUBLIC_ORACLE_API_URL || "http://localhost:8080"
@@ -85,12 +85,13 @@ export default function BalanceMonitoring() {
       );
       const data = response.data;
 
-      setContractBalance({
+      setContractBalance((prev) => ({
+        ...prev,
         address: data.address,
         balances: data.balances || [],
         lastUpdated: new Date().toISOString(),
         isLoading: false,
-      });
+      }));
 
       if (showToast) {
         toast({
@@ -133,11 +134,10 @@ export default function BalanceMonitoring() {
         isLoading: false,
       };
       updated.set(address, { ...current, isLoading: true, error: undefined });
-      return updated;
+      return new Map(updated);
     });
 
     try {
-      // Use backend endpoint as defined in app.ts: /wallet-balance?address=...
       const response = await axios.get(
         `${
           process.env.NEXT_PUBLIC_ORACLE_API_URL || "http://localhost:8080"
@@ -154,7 +154,7 @@ export default function BalanceMonitoring() {
           lastUpdated: new Date().toISOString(),
           isLoading: false,
         });
-        return updated;
+        return new Map(updated);
       });
 
       if (showToast) {
@@ -185,7 +185,7 @@ export default function BalanceMonitoring() {
           isLoading: false,
           error: errorMessage,
         });
-        return updated;
+        return new Map(updated);
       });
 
       if (showToast) {
@@ -239,7 +239,7 @@ export default function BalanceMonitoring() {
     icon: any;
     onRefresh: () => void;
   }) => (
-    <Card>
+    <Card className="h-full">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <CardTitle className="text-sm font-medium flex items-center gap-2">
           <Icon className="w-4 h-4" />
@@ -250,22 +250,32 @@ export default function BalanceMonitoring() {
           size="sm"
           onClick={onRefresh}
           disabled={data.isLoading}
+          className="h-8 w-8 p-0"
         >
           <RefreshCw
             className={`w-4 h-4 ${data.isLoading ? "animate-spin" : ""}`}
           />
         </Button>
       </CardHeader>
-      <CardContent>
-        {data.error ? (
-          <div className="flex items-center gap-2 text-destructive">
+      <CardContent className="min-h-[120px] flex flex-col justify-between">
+        {data.isLoading ? (
+          <div className="flex items-center justify-center py-4 flex-1">
+            <div className="flex items-center gap-2">
+              <Loader2 className="w-4 h-4 animate-spin text-primary" />
+              <span className="text-sm text-muted-foreground">Loading...</span>
+            </div>
+          </div>
+        ) : data.error ? (
+          <div className="flex items-center gap-2 text-destructive py-2 flex-1">
             <AlertCircle className="w-4 h-4" />
             <span className="text-sm">{data.error}</span>
           </div>
-        ) : data.balances.length === 0 && !data.isLoading ? (
-          <div className="text-muted-foreground text-sm">No balance data</div>
+        ) : data.balances.length === 0 ? (
+          <div className="text-muted-foreground text-sm py-2 flex-1 flex items-center">
+            No balance data
+          </div>
         ) : (
-          <div className="space-y-2">
+          <div className="space-y-2 flex-1">
             {data.balances.map((balance, index) => (
               <div key={index} className="flex items-center justify-between">
                 <span className="text-xs font-mono uppercase">
@@ -290,7 +300,7 @@ export default function BalanceMonitoring() {
             )}
           </div>
         )}
-        {data.lastUpdated && (
+        {data.lastUpdated && !data.isLoading && (
           <p className="text-xs text-muted-foreground mt-2">
             Last updated: {new Date(data.lastUpdated).toLocaleTimeString()}
           </p>
@@ -328,11 +338,57 @@ export default function BalanceMonitoring() {
               Array.from(walletBalances.values()).some((b) => b.isLoading)
             }
           >
-            <RefreshCw className="w-4 h-4 mr-2" />
+            {Array.from(walletBalances.values()).some((b) => b.isLoading) ? (
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+            ) : (
+              <RefreshCw className="w-4 h-4 mr-2" />
+            )}
             Refresh All
           </Button>
         </div>
       </div>
+
+      {/* Balance Summary Section */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <TrendingUp className="w-5 h-5" />
+            Balance Summary
+          </CardTitle>
+          <CardDescription>
+            Aggregated balance statistics across all monitored wallets
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="text-center p-4 border rounded-lg">
+              <div className="text-2xl font-bold text-primary">
+                {wallets.length}
+              </div>
+              <p className="text-sm text-muted-foreground">Monitored Wallets</p>
+            </div>
+            <div className="text-center p-4 border rounded-lg">
+              <div className="text-2xl font-bold text-accent">
+                {Array.from(walletBalances.values())
+                  .reduce(
+                    (total, data) => total + getTotalBalance(data.balances),
+                    0
+                  )
+                  .toLocaleString()}
+              </div>
+              <p className="text-sm text-muted-foreground">Total USTAKE</p>
+            </div>
+            <div className="text-center p-4 border rounded-lg">
+              <div className="text-2xl font-bold text-muted-foreground">
+                {contractBalance.balances.length > 0
+                  ? getTotalBalance(contractBalance.balances).toLocaleString()
+                  : "--"}
+              </div>
+              <p className="text-sm text-muted-foreground">Contract USTAKE</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Contract Balance Section */}
       <Card>
@@ -367,7 +423,7 @@ export default function BalanceMonitoring() {
               disabled={!contractAddress.trim() || contractBalance.isLoading}
             >
               {contractBalance.isLoading ? (
-                <RefreshCw className="w-4 h-4 animate-spin" />
+                <Loader2 className="w-4 h-4 animate-spin" />
               ) : (
                 "Fetch"
               )}
@@ -415,48 +471,6 @@ export default function BalanceMonitoring() {
           })}
         </div>
       </div>
-
-      {/* Summary Statistics */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <TrendingUp className="w-5 h-5" />
-            Balance Summary
-          </CardTitle>
-          <CardDescription>
-            Aggregated balance statistics across all monitored wallets
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="text-center p-4 border rounded-lg">
-              <div className="text-2xl font-bold text-primary">
-                {wallets.length}
-              </div>
-              <p className="text-sm text-muted-foreground">Monitored Wallets</p>
-            </div>
-            <div className="text-center p-4 border rounded-lg">
-              <div className="text-2xl font-bold text-accent">
-                {Array.from(walletBalances.values())
-                  .reduce(
-                    (total, data) => total + getTotalBalance(data.balances),
-                    0
-                  )
-                  .toLocaleString()}
-              </div>
-              <p className="text-sm text-muted-foreground">Total USTAKE</p>
-            </div>
-            <div className="text-center p-4 border rounded-lg">
-              <div className="text-2xl font-bold text-muted-foreground">
-                {contractBalance.balances.length > 0
-                  ? getTotalBalance(contractBalance.balances).toLocaleString()
-                  : "--"}
-              </div>
-              <p className="text-sm text-muted-foreground">Contract USTAKE</p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
     </div>
   );
 }

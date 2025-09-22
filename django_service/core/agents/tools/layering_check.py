@@ -1,3 +1,4 @@
+
 import requests
 from datetime import datetime
 from typing import Annotated
@@ -7,6 +8,7 @@ from langgraph.types import Command
 from langgraph.prebuilt import InjectedState
 from langchain_core.messages import ToolMessage
 from core.agents.models.aml_state import AmlState
+
 
 @tool(parse_docstring=True)
 def check_layering(
@@ -20,11 +22,14 @@ def check_layering(
     Detects layering (circular or rapid fund transfers) in a wallet's transactions.
 
     Args:
-        tool_call_id: The unique identifier for this tool call.
-        aml_state: The current state containing wallet address.
-        api_url: Endpoint to fetch transaction history of a wallet.
-        max_hops: Maximum depth for recursive n-hop exploration.
-        rapid_window: Time (in seconds) considered "rapid" transfer.
+        tool_call_id (str): The unique identifier for this tool call.
+        aml_state (AmlState): The current state containing wallet address.
+        api_url (str): Endpoint to fetch transaction history of a wallet.
+        max_hops (int, optional): Maximum depth for recursive n-hop exploration.
+        rapid_window (int, optional): Time (in seconds) considered "rapid" transfer.
+
+    Returns:
+        Command: The result of the layering analysis.
     """
 
     origin = aml_state['wallet_address']
@@ -36,7 +41,8 @@ def check_layering(
         if address in cache:
             return cache[address]
         try:
-            resp = requests.get(f"{api_url.rstrip('/')}/{address}", timeout=5)
+            # Always use the Node.js backend for transactions
+            resp = requests.get(f"http://localhost:8080/transactions/{address}", timeout=5)
             txs = resp.json().get("transactions", [])
         except Exception as e:
             print(f"[Layering Tool] API error for {address}: {e}")
@@ -65,10 +71,13 @@ def check_layering(
             new_path = path + [counterparty]
             new_visited = visited | {counterparty}
 
-            if counterparty == origin:
-                path_tuple = tuple(new_path)
-                if path_tuple not in recorded_cycles:
-                    recorded_cycles.add(path_tuple)
+            # Only count cycles that are longer than 2 (not direct send/receive)
+            if counterparty == origin and len(new_path) > 3:
+                # Canonicalize cycle: rotate so smallest address is first
+                min_idx = min(range(len(new_path)), key=lambda i: new_path[i])
+                canonical_cycle = tuple(new_path[min_idx:] + new_path[:min_idx])
+                if canonical_cycle not in recorded_cycles:
+                    recorded_cycles.add(canonical_cycle)
                     first_ts = start_ts or ts
                     last_ts = ts
                     duration = max(0, (last_ts - first_ts).total_seconds())
@@ -109,12 +118,12 @@ def check_layering(
 
     return Command(
         update={
-            "messages": [tool_message]#,
-          #  "layering_result": {
-           #     "agent": "Layering Agent",
-            #    "score": score,
-             #   "decision": decision,
-              #  "evidence": evidence
-            #}
+            "messages": [tool_message]
+            # "layering_result": {
+            #     "agent": "Layering Agent",
+            #     "score": score,
+            #     "decision": decision,
+            #     "evidence": evidence
+            # }
         }
     )

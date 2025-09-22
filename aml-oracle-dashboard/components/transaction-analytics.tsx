@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import axios from "axios";
 import {
   Card,
   CardContent,
@@ -52,15 +53,19 @@ import { useToast } from "@/hooks/use-toast";
 
 import { wallets } from "@/lib/utils";
 
+import TransactionNetwork from "@/components/transaction-network";
+
 interface Transaction {
   hash: string;
   timestamp: string;
-  from: string;
-  to: string;
+  from?: string;
+  to?: string;
+  sender?: string;
+  receiver?: string;
   amount: string;
   denom: string;
-  type: string;
-  status: "success" | "failed" | "pending";
+  type?: string;
+  status?: "success" | "failed" | "pending";
 }
 
 interface ChartData {
@@ -77,34 +82,14 @@ interface RiskData {
   color: string;
 }
 
-// Mock data for demonstration
-const generateMockTransactions = (walletAddress: string): Transaction[] => {
-  const mockTxs: Transaction[] = [];
-  const now = new Date();
-
-  for (let i = 0; i < 50; i++) {
-    const date = new Date(now.getTime() - i * 24 * 60 * 60 * 1000);
-    mockTxs.push({
-      hash: `tx_${Math.random().toString(36).substr(2, 9)}`,
-      timestamp: date.toISOString(),
-      from:
-        i % 3 === 0
-          ? walletAddress
-          : `wasm1${Math.random().toString(36).substr(2, 39)}`,
-      to:
-        i % 3 === 0
-          ? `wasm1${Math.random().toString(36).substr(2, 39)}`
-          : walletAddress,
-      amount: (Math.random() * 10000).toFixed(0),
-      denom: "ustake",
-      type: ["send", "receive", "delegate", "undelegate"][
-        Math.floor(Math.random() * 4)
-      ],
-      status: Math.random() > 0.1 ? "success" : "failed",
-    });
-  }
-
-  return mockTxs;
+// Fetch transactions from backend API
+const fetchTransactionsFromApi = async (walletAddress: string) => {
+  const apiUrl =
+    process.env.NEXT_PUBLIC_ORACLE_API_URL || "http://localhost:8080";
+  const response = await axios.get(`${apiUrl}/transactions/${walletAddress}`);
+  // You may need to adjust this mapping based on your backend's response format
+  // Here we assume response.data is an array of transactions
+  return response.data;
 };
 
 const generateChartData = (transactions: Transaction[]): ChartData[] => {
@@ -176,24 +161,20 @@ export default function TransactionAnalytics() {
 
   const fetchTransactionData = async () => {
     setIsLoading(true);
-
     try {
       const selectedWalletData = wallets.find(
         (w) => w.label === selectedWallet
       );
       if (!selectedWalletData) return;
 
-      // In a real implementation, this would call the API
-      // const response = await fetch(`/api/transactions/${selectedWalletData.address}`)
-      // const data = await response.json()
+      // Fetch real transactions from backend
+      const txs = await fetchTransactionsFromApi(selectedWalletData.address);
 
-      // For now, using mock data
-      const mockTransactions = generateMockTransactions(
-        selectedWalletData.address
-      );
-      setTransactions(mockTransactions);
-      setChartData(generateChartData(mockTransactions));
-      setRiskData(generateRiskData(mockTransactions));
+      // Support backend response as { transactions: [...] }
+      const txArray = Array.isArray(txs.transactions) ? txs.transactions : [];
+      setTransactions(txArray);
+      setChartData(generateChartData(txArray));
+      setRiskData(generateRiskData(txArray));
 
       toast({
         title: "Analytics Updated",
@@ -216,12 +197,24 @@ export default function TransactionAnalytics() {
     return value.toFixed(0);
   };
 
-  const CustomTooltip = ({ active, payload, label }: any) => {
+  const CustomTooltip = ({
+    active,
+    payload,
+    label,
+  }: {
+    active?: boolean;
+    payload?: Array<{
+      color: string;
+      dataKey: string;
+      value: number;
+    }>;
+    label?: string;
+  }) => {
     if (active && payload && payload.length) {
       return (
         <div className="bg-card border rounded-lg p-3 shadow-lg">
           <p className="font-medium">{`Date: ${label}`}</p>
-          {payload.map((entry: any, index: number) => (
+          {payload.map((entry, index) => (
             <p key={index} style={{ color: entry.color }}>
               {`${entry.dataKey}: ${
                 entry.dataKey === "volume"
@@ -328,6 +321,75 @@ export default function TransactionAnalytics() {
     }
   };
 
+  const processTransactionsToGraphData = (transactions: Transaction[]) => {
+    const nodeMap = new Map<
+      string,
+      { id: string; label: string; type: string; transactions: Transaction[] }
+    >();
+    const links: Array<{
+      source: string;
+      target: string;
+      transactions: Transaction[];
+    }> = [];
+
+    // Create nodes for unique addresses
+    transactions.forEach((tx) => {
+      const sender = tx.sender || tx.from || "";
+      const receiver = tx.receiver || tx.to || "";
+
+      if (sender && !nodeMap.has(sender)) {
+        nodeMap.set(sender, {
+          id: sender,
+          label: sender.substring(0, 8) + "...",
+          type: "wallet",
+          transactions: [],
+        });
+      }
+
+      if (receiver && !nodeMap.has(receiver)) {
+        nodeMap.set(receiver, {
+          id: receiver,
+          label: receiver.substring(0, 8) + "...",
+          type: "wallet",
+          transactions: [],
+        });
+      }
+
+      // Add transaction to sender and receiver nodes
+      if (sender) nodeMap.get(sender)?.transactions.push(tx);
+      if (receiver) nodeMap.get(receiver)?.transactions.push(tx);
+    });
+
+    // Create links between nodes
+    const linkMap = new Map<string, Transaction[]>();
+    transactions.forEach((tx) => {
+      const sender = tx.sender || tx.from || "";
+      const receiver = tx.receiver || tx.to || "";
+
+      if (sender && receiver) {
+        const linkKey = `${sender}-${receiver}`;
+        if (!linkMap.has(linkKey)) {
+          linkMap.set(linkKey, []);
+        }
+        linkMap.get(linkKey)?.push(tx);
+      }
+    });
+
+    linkMap.forEach((txs, linkKey) => {
+      const [source, target] = linkKey.split("-");
+      links.push({
+        source,
+        target,
+        transactions: txs,
+      });
+    });
+
+    return {
+      nodes: Array.from(nodeMap.values()),
+      links,
+    };
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -364,6 +426,86 @@ export default function TransactionAnalytics() {
         </div>
       </div>
 
+      {/* Recent Transactions Table */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Activity className="w-5 h-5" />
+            Recent Transactions
+          </CardTitle>
+          <CardDescription>
+            Latest transactions for{" "}
+            <span className="font-bold">{selectedWallet}s</span> wallet
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b">
+                  <th className="text-left p-2">Hash</th>
+                  <th className="text-left p-2">From</th>
+                  <th className="text-left p-2">To</th>
+                  <th className="text-left p-2">Amount</th>
+                  <th className="text-left p-2">Status</th>
+                  <th className="text-left p-2">Date</th>
+                </tr>
+              </thead>
+              <tbody>
+                {Array.isArray(transactions)
+                  ? transactions.slice(0, 10).map((tx) => (
+                      <tr key={tx.hash} className="border-b hover:bg-muted/50">
+                        <td className="p-2 font-mono text-xs">
+                          {tx.hash.substring(0, 16)}...
+                        </td>
+                        <td className="p-2 font-mono text-xs">
+                          {tx.sender?.substring(0, 8)}...
+                        </td>
+                        <td className="p-2 font-mono text-xs">
+                          {tx.receiver?.substring(0, 8)}...
+                        </td>
+                        <td className="p-2 font-medium">
+                          {formatCurrency(Number.parseFloat(tx.amount))}{" "}
+                          {tx.denom.toUpperCase()}
+                        </td>
+                        <td className="p-2">
+                          <Badge
+                            variant={"outline"}
+                            className="text-white text-xs bg-teal-700"
+                          >
+                            {"success"}
+                          </Badge>
+                        </td>
+                        <td className="p-2 text-muted-foreground">
+                          {new Date(tx.timestamp).toLocaleDateString()}
+                        </td>
+                      </tr>
+                    ))
+                  : null}
+              </tbody>
+            </table>
+            {Array.isArray(transactions) && transactions.length === 0 && (
+              <div className="text-center py-8 text-muted-foreground">
+                <Activity className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                <p className="text-sm">No transactions found</p>
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Transaction Network Graph Visualization */}
+      {Array.isArray(transactions) && transactions.length > 0 && (
+        <TransactionNetwork
+          data={processTransactionsToGraphData(transactions)}
+          mainWallet={
+            wallets.find((w) => w.label === selectedWallet)?.address || ""
+          }
+          contractAddress="wasm14hj2tavq8fpesdwxxcu44rty3hh90vhujrvcmstl4zr3txmfvw9s0phg4d"
+          transactions={transactions}
+        />
+      )}
+
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card>
@@ -387,10 +529,12 @@ export default function TransactionAnalytics() {
           <CardContent>
             <div className="text-2xl font-bold">
               {formatCurrency(
-                transactions.reduce(
-                  (sum, tx) => sum + Number.parseFloat(tx.amount),
-                  0
-                )
+                Array.isArray(transactions)
+                  ? transactions.reduce((sum, tx) => {
+                      const amt = Number.parseFloat(tx.amount);
+                      return sum + (isNaN(amt) ? 0 : amt);
+                    }, 0)
+                  : 0
               )}
             </div>
             <p className="text-xs text-muted-foreground">USTAKE</p>
@@ -441,6 +585,7 @@ export default function TransactionAnalytics() {
         </Card>
       </div>
 
+      {/* Charts and metrics */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Transaction Volume Chart */}
         <Card className="lg:col-span-2">
@@ -541,71 +686,6 @@ export default function TransactionAnalytics() {
           </CardContent>
         </Card>
       </div>
-
-      {/* Recent Transactions Table */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Activity className="w-5 h-5" />
-            Recent Transactions
-          </CardTitle>
-          <CardDescription>
-            Latest transactions for {selectedWallet} wallet
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b">
-                  <th className="text-left p-2">Hash</th>
-                  <th className="text-left p-2">Type</th>
-                  <th className="text-left p-2">Amount</th>
-                  <th className="text-left p-2">Status</th>
-                  <th className="text-left p-2">Date</th>
-                </tr>
-              </thead>
-              <tbody>
-                {transactions.slice(0, 10).map((tx) => (
-                  <tr key={tx.hash} className="border-b hover:bg-muted/50">
-                    <td className="p-2 font-mono text-xs">
-                      {tx.hash.slice(0, 12)}...
-                    </td>
-                    <td className="p-2">
-                      <Badge variant="outline" className="text-xs">
-                        {tx.type}
-                      </Badge>
-                    </td>
-                    <td className="p-2 font-medium">
-                      {formatCurrency(Number.parseFloat(tx.amount))}{" "}
-                      {tx.denom.toUpperCase()}
-                    </td>
-                    <td className="p-2">
-                      <Badge
-                        variant={
-                          tx.status === "success" ? "default" : "destructive"
-                        }
-                        className="text-xs"
-                      >
-                        {tx.status}
-                      </Badge>
-                    </td>
-                    <td className="p-2 text-muted-foreground">
-                      {new Date(tx.timestamp).toLocaleDateString()}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            {transactions.length === 0 && (
-              <div className="text-center py-8 text-muted-foreground">
-                <Activity className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                <p className="text-sm">No transactions found</p>
-              </div>
-            )}
-          </div>
-        </CardContent>
-      </Card>
     </div>
   );
 }

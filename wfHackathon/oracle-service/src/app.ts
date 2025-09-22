@@ -287,8 +287,12 @@ import dotenv from "dotenv";
 import errorHandler from "./errorMiddleware";
 import { OracleController } from "./controllers/OracleController";
 import { ComplianceController } from "./controllers/ComplianceController";
+import axios from "axios";
 import { TxController } from "./controllers/TxController";
 import { BalanceController } from "./controllers/BalanceController";
+import { WalletTransferController } from "./controllers/WalletTransferController";
+// Wallet-to-wallet transfer endpoint
+// ...existing code...
 
 // All business logic is now in services, and all route handling in controllers.
 dotenv.config();
@@ -302,16 +306,19 @@ const CONFIG = {
 };
 
 const app = express();
-// Allow CORS for frontend (adjust origin as needed)
-app.use(cors());
-const port = process.env.PORT;
-
+// Register body parsers and CORS before all routes
 app.use(json());
 app.use(urlencoded({ extended: true }));
+app.use(cors());
 app.use(errorHandler);
 setupSwaggerDocs(app);
 
+// Wallet-to-wallet transfer endpoint (must be after app is declared and after body parsers)
+app.post("/wallet-transfer", WalletTransferController.transfer);
+const port = process.env.PORT;
+
 // Oracle endpoints
+// Modular: compliance check is handled in OracleController
 app.post("/oracle/sign-receive", (req, res) =>
   OracleController.signReceive(req, res, CONFIG)
 );

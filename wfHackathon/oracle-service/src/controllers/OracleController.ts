@@ -17,18 +17,23 @@ export class OracleController {
           .json({ success: false, error: "Oracle mnemonic not configured" });
       }
       if (!config.CONTRACT_ADDR) {
-        return res
-          .status(500)
-          .json({
-            success: false,
-            error: "Oracle contract address not configured",
-          });
+        return res.status(500).json({
+          success: false,
+          error: "Oracle contract address not configured",
+        });
       }
 
       // Compliance check before signature validation
-      const isCompliant = await ComplianceController.isTransactionCompliant(sender);
-      if (!isCompliant) {
-        return res.status(403).json({ success: false, error: "Transaction failed compliance check." });
+      const complianceResult =
+        await ComplianceController.isTransactionCompliant(sender);
+      if (!complianceResult.compliant) {
+        return res.status(403).json({
+          success: false,
+          error:
+            complianceResult.reason || "Transaction failed compliance check.",
+          riskScore: complianceResult.riskScore,
+          failedChecks: complianceResult.failedChecks || [],
+        });
       }
 
       const result = await OracleService.signReceive({

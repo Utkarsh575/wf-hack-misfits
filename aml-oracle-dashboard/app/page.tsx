@@ -1,6 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import axios from "axios";
+import { Loader2 } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -23,6 +25,7 @@ import AddressManagement from "@/components/address-management";
 import TransactionExecution from "@/components/transaction-execution";
 import BalanceMonitoring from "@/components/balance-monitoring";
 import TransactionAnalytics from "@/components/transaction-analytics";
+import WalletTransfer from "@/components/wallet-transfer";
 
 const wallets = [
   {
@@ -64,6 +67,86 @@ const wallets = [
 
 export default function AMLOracleDashboard() {
   const [activeTab, setActiveTab] = useState("overview");
+  // Overview state
+  const [sanctioned, setSanctioned] = useState(0);
+  const [mixers, setMixers] = useState(0);
+  const [darknet, setDarknet] = useState(0);
+  const [oracleBalance, setOracleBalance] = useState(0);
+  const [loadingOverview, setLoadingOverview] = useState(true);
+  // Animated counters
+  const [displaySanctioned, setDisplaySanctioned] = useState(0);
+  const [displayMixers, setDisplayMixers] = useState(0);
+  const [displayDarknet, setDisplayDarknet] = useState(0);
+  const [displayOracleBalance, setDisplayOracleBalance] = useState(0);
+
+  // Fetch all overview data on mount
+  useEffect(() => {
+    let cancelled = false;
+    async function fetchOverview() {
+      setLoadingOverview(true);
+      try {
+        const api =
+          process.env.NEXT_PUBLIC_ORACLE_API_URL || "http://localhost:8080";
+        const [sanctionsRes, mixersRes, darknetRes, oracleBalRes] =
+          await Promise.all([
+            axios.get(`${api}/sanctions/all`),
+            axios.get(`${api}/mixers/all`),
+            axios.get(`${api}/darknet/all`),
+            axios.get(`${api}/wallet-balance`, {
+              params: {
+                address: wallets.find((w) => w.label === "Oracle")?.address,
+              },
+            }),
+          ]);
+        if (cancelled) return;
+        setSanctioned(sanctionsRes.data.sanctioned?.length || 0);
+        setMixers(mixersRes.data.mixers?.length || 0);
+        setDarknet(darknetRes.data.darknet?.length || 0);
+        // Oracle balance: sum all ustake
+        const balances = oracleBalRes.data.balances || [];
+        const ustake = balances.find((b: any) => b.denom === "ustake");
+        setOracleBalance(ustake ? Number(ustake.amount) : 0);
+      } catch (e) {
+        setSanctioned(0);
+        setMixers(0);
+        setDarknet(0);
+        setOracleBalance(0);
+      } finally {
+        setLoadingOverview(false);
+      }
+    }
+    fetchOverview();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // Animate counters
+  useEffect(() => {
+    if (!loadingOverview) {
+      let frame = 0;
+      const duration = 600; // ms
+      const steps = 30;
+      const interval = duration / steps;
+      const animate = (target: number, setter: (v: number) => void) => {
+        let current = 0;
+        const increment = target / steps;
+        const id = setInterval(() => {
+          current += increment;
+          if (current >= target) {
+            setter(target);
+            clearInterval(id);
+          } else {
+            setter(Math.floor(current));
+          }
+        }, interval);
+      };
+      animate(sanctioned, setDisplaySanctioned);
+      animate(mixers, setDisplayMixers);
+      animate(darknet, setDisplayDarknet);
+      animate(oracleBalance, setDisplayOracleBalance);
+    }
+  }, [loadingOverview, sanctioned, mixers, darknet, oracleBalance]);
 
   return (
     <div className="min-h-screen bg-background">
@@ -78,7 +161,7 @@ export default function AMLOracleDashboard() {
               <div>
                 <h1 className="text-xl font-bold text-white">AML Oracle</h1>
                 <p className="text-sm text-yellow-100">
-                  Blockchain Compliance Detection
+                  Non Custodial Wallet Compliance Oracle Manager
                 </p>
               </div>
             </div>
@@ -90,30 +173,6 @@ export default function AMLOracleDashboard() {
                 <div className="w-2 h-2 bg-green-400 rounded-full mr-2" />
                 Oracle Active
               </Badge>
-              <Button
-                variant="outline"
-                size="sm"
-                className="text-white hover:bg-yellow-400 hover:text-red-600 bg-transparent border-[rgba(252,199,-68,0)]"
-              >
-                <Settings className="w-4 h-4 mr-2" />
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="24"
-                  height="24"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  className="lucide lucide-settings w-4 h-4 mr-2"
-                >
-                  <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path>
-                  <circle cx="12" cy="12" r="3"></circle>
-                </svg>
-                <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path>
-                <circle cx="12" cy="12" r="3"></circle>
-              </Button>
             </div>
           </div>
         </div>
@@ -143,9 +202,9 @@ export default function AMLOracleDashboard() {
               <BarChart3 className="w-4 h-4" />
               Balances
             </TabsTrigger>
-            <TabsTrigger value="analytics" className="flex items-center gap-2">
+            <TabsTrigger value="transfer" className="flex items-center gap-2">
               <BarChart3 className="w-4 h-4" />
-              Analytics
+              Transfer
             </TabsTrigger>
             <TabsTrigger
               value="transactions"
@@ -159,6 +218,7 @@ export default function AMLOracleDashboard() {
           {/* Overview Tab */}
           <TabsContent value="overview" className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              {/* Sanctioned Addresses */}
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">
@@ -167,13 +227,19 @@ export default function AMLOracleDashboard() {
                   <AlertTriangle className="h-4 w-4 text-destructive" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">0</div>
+                  <div className="text-2xl font-bold min-h-[2.5rem] flex items-center justify-center">
+                    {loadingOverview ? (
+                      <Loader2 className="animate-spin w-6 h-6 text-muted-foreground" />
+                    ) : (
+                      displaySanctioned
+                    )}
+                  </div>
                   <p className="text-xs text-muted-foreground">
                     Active sanctions
                   </p>
                 </CardContent>
               </Card>
-
+              {/* Mixer Addresses */}
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">
@@ -182,11 +248,17 @@ export default function AMLOracleDashboard() {
                   <Shield className="h-4 w-4 text-accent" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">0</div>
+                  <div className="text-2xl font-bold min-h-[2.5rem] flex items-center justify-center">
+                    {loadingOverview ? (
+                      <Loader2 className="animate-spin w-6 h-6 text-muted-foreground" />
+                    ) : (
+                      displayMixers
+                    )}
+                  </div>
                   <p className="text-xs text-muted-foreground">Known mixers</p>
                 </CardContent>
               </Card>
-
+              {/* Darknet Addresses */}
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">
@@ -195,13 +267,19 @@ export default function AMLOracleDashboard() {
                   <AlertTriangle className="h-4 w-4 text-destructive" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">0</div>
+                  <div className="text-2xl font-bold min-h-[2.5rem] flex items-center justify-center">
+                    {loadingOverview ? (
+                      <Loader2 className="animate-spin w-6 h-6 text-muted-foreground" />
+                    ) : (
+                      displayDarknet
+                    )}
+                  </div>
                   <p className="text-xs text-muted-foreground">
                     Darknet wallets
                   </p>
                 </CardContent>
               </Card>
-
+              {/* Oracle Balance */}
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">
@@ -210,7 +288,15 @@ export default function AMLOracleDashboard() {
                   <Wallet className="h-4 w-4 text-primary" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">--</div>
+                  <div className="text-2xl font-bold min-h-[2.5rem] flex items-center justify-center">
+                    {loadingOverview ? (
+                      <Loader2 className="animate-spin w-6 h-6 text-muted-foreground" />
+                    ) : oracleBalance === 0 ? (
+                      "--"
+                    ) : (
+                      displayOracleBalance.toLocaleString()
+                    )}
+                  </div>
                   <p className="text-xs text-muted-foreground">USTAKE</p>
                 </CardContent>
               </Card>
@@ -285,8 +371,8 @@ export default function AMLOracleDashboard() {
             <BalanceMonitoring />
           </TabsContent>
 
-          <TabsContent value="analytics">
-            <TransactionAnalytics />
+          <TabsContent value="transfer">
+            <WalletTransfer />
           </TabsContent>
 
           <TabsContent value="transactions">

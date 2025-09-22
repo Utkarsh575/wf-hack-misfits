@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
+import type React from "react";
 import axios from "axios";
 import {
   Card,
@@ -19,8 +20,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
 import {
   AlertCircle,
   CheckCircle,
@@ -28,9 +27,256 @@ import {
   Send,
   Wallet,
   Key,
+  Shield,
+  Clock,
 } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
 
+function parseMaybeJson(str: string) {
+  try {
+    if (str.trim().startsWith("{") && str.includes(":")) {
+      const jsonStr = str.replace(/'/g, '"');
+      return JSON.parse(jsonStr);
+    }
+  } catch {
+    // Not JSON
+  }
+  return str;
+}
+
+interface ComplianceFailureProps {
+  result: any;
+}
+
+const ComplianceFailure: React.FC<ComplianceFailureProps> = ({ result }) => {
+  if (!result || result.success !== false) return null;
+
+  const getLatestFailedCheck = () => {
+    if (!result.failedChecks || !Array.isArray(result.failedChecks))
+      return null;
+
+    // Find the last object-type failed check (not string)
+    for (let i = result.failedChecks.length - 1; i >= 0; i--) {
+      const check = result.failedChecks[i];
+      const parsed = typeof check === "string" ? parseMaybeJson(check) : check;
+      if (typeof parsed === "object" && parsed !== null) {
+        return parsed;
+      }
+    }
+    return null;
+  };
+
+  const latestFailedCheck = getLatestFailedCheck();
+
+  return (
+    <div className="bg-red-50 border border-red-200 rounded-lg p-6 my-4">
+      <div className="flex items-center gap-2 mb-4">
+        <Shield className="w-6 h-6 text-red-500" />
+        <span className="font-bold text-red-700 text-xl">
+          Transaction Blocked: AML Compliance Failure
+        </span>
+      </div>
+
+      <div className="mb-4 p-4 bg-red-100 rounded-lg border border-red-300">
+        <div className="flex items-center gap-2 mb-2">
+          <AlertCircle className="w-5 h-5 text-red-600" />
+          <span className="font-semibold text-red-800 text-lg">
+            Wallet Failed AML Check
+          </span>
+        </div>
+        <p className="text-red-800">
+          The wallet did not pass the Anti-Money Laundering (AML) verification
+          process. This transaction has been blocked for security and compliance
+          reasons.
+        </p>
+      </div>
+
+      {/* Risk Score Display */}
+      {typeof result.riskScore !== "undefined" && (
+        <div className="mb-4 p-3 bg-red-100 rounded-lg">
+          <div className="flex items-center justify-between">
+            <span className="font-semibold text-red-800">Risk Score:</span>
+            <Badge
+              variant="destructive"
+              className="text-lg font-bold px-3 py-1"
+            >
+              {result.riskScore}/10
+            </Badge>
+          </div>
+          <p className="text-sm text-red-700 mt-1">
+            High risk score indicates potential money laundering activities
+          </p>
+        </div>
+      )}
+
+      {/* Main Error Message */}
+      {result.error && (
+        <div className="mb-4 p-3 bg-red-100 rounded-lg">
+          <span className="font-semibold text-red-800">Error Details:</span>
+          <p className="text-red-800 mt-1">{result.error}</p>
+        </div>
+      )}
+
+      {latestFailedCheck && (
+        <div className="mb-4">
+          <h4 className="font-semibold text-red-800 mb-3 flex items-center gap-2">
+            <Clock className="w-4 h-4" />
+            Latest Compliance Issue
+          </h4>
+          <div className="bg-red-100 rounded-lg p-4 border border-red-300">
+            {latestFailedCheck.type && (
+              <div className="mb-2">
+                <Badge variant="destructive" className="mb-2">
+                  {latestFailedCheck.type.toUpperCase()}
+                </Badge>
+              </div>
+            )}
+
+            {latestFailedCheck.wallet && (
+              <div className="mb-2">
+                <span className="font-semibold text-red-800">
+                  Flagged Wallet:
+                </span>
+                <div className="font-mono text-sm bg-red-200 p-2 rounded mt-1 break-all">
+                  {latestFailedCheck.wallet}
+                </div>
+              </div>
+            )}
+
+            {latestFailedCheck.hop && (
+              <div className="mb-2">
+                <span className="font-semibold text-red-800">
+                  Transaction Hop:
+                </span>
+                <span className="ml-2 text-red-700">
+                  {latestFailedCheck.hop}
+                </span>
+              </div>
+            )}
+
+            {latestFailedCheck.message && (
+              <div className="mb-3">
+                <span className="font-semibold text-red-800">
+                  Issue Description:
+                </span>
+                <p className="text-red-800 mt-1">{latestFailedCheck.message}</p>
+              </div>
+            )}
+
+            {latestFailedCheck.transactions &&
+              Array.isArray(latestFailedCheck.transactions) &&
+              latestFailedCheck.transactions.length > 0 && (
+                <div className="mt-3">
+                  <span className="font-semibold text-red-800 mb-2 block">
+                    Flagged Transactions (
+                    {latestFailedCheck.transactions.length}):
+                  </span>
+                  <div className="space-y-3 max-h-60 overflow-y-auto">
+                    {latestFailedCheck.transactions.map(
+                      (tx: any, i: number) => (
+                        <div key={i} className="bg-red-200 rounded p-3 text-sm">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                            {tx.hash && (
+                              <div>
+                                <span className="font-semibold text-red-900">
+                                  Hash:
+                                </span>
+                                <div className="font-mono text-xs break-all text-red-800 mt-1">
+                                  {tx.hash}
+                                </div>
+                              </div>
+                            )}
+                            {tx.timestamp && (
+                              <div>
+                                <span className="font-semibold text-red-900">
+                                  Time:
+                                </span>
+                                <div className="text-red-800 mt-1">
+                                  {new Date(tx.timestamp).toLocaleString()}
+                                </div>
+                              </div>
+                            )}
+                            {tx.sender && (
+                              <div>
+                                <span className="font-semibold text-red-900">
+                                  From:
+                                </span>
+                                <div className="font-mono text-xs break-all text-red-800 mt-1">
+                                  {tx.sender}
+                                </div>
+                              </div>
+                            )}
+                            {tx.receiver && (
+                              <div>
+                                <span className="font-semibold text-red-900">
+                                  To:
+                                </span>
+                                <div className="font-mono text-xs break-all text-red-800 mt-1">
+                                  {tx.receiver}
+                                </div>
+                              </div>
+                            )}
+                            {tx.amount && (
+                              <div className="md:col-span-2">
+                                <span className="font-semibold text-red-900">
+                                  Amount:
+                                </span>
+                                <span className="ml-2 text-red-800 font-mono">
+                                  {tx.amount} {tx.denom || ""}
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )
+                    )}
+                  </div>
+                </div>
+              )}
+          </div>
+        </div>
+      )}
+
+      <div>
+        <h4 className="font-semibold text-red-800 mb-2">
+          All Compliance Checks:
+        </h4>
+        <div className="space-y-2 max-h-40 overflow-y-auto">
+          {result.failedChecks?.map((check: any, idx: number) => {
+            const parsed =
+              typeof check === "string" ? parseMaybeJson(check) : check;
+            if (typeof parsed === "string") {
+              return (
+                <div
+                  key={idx}
+                  className="bg-red-100 rounded p-2 text-sm text-red-900 border border-red-200"
+                >
+                  {parsed}
+                </div>
+              );
+            }
+            return (
+              <div
+                key={idx}
+                className="bg-red-100 rounded p-2 text-sm text-red-900 border border-red-200"
+              >
+                <div className="font-semibold">
+                  Check #{idx + 1}: {parsed.type || "Compliance Issue"}
+                </div>
+                {parsed.message && (
+                  <div className="mt-1 text-xs">{parsed.message}</div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+import { useToast } from "@/hooks/use-toast";
 import { wallets } from "@/lib/utils";
 
 interface SignatureResponse {
@@ -66,7 +312,13 @@ export default function TransactionExecution() {
   const [signatureData, setSignatureData] = useState<SignatureResponse | null>(
     null
   );
+  const [complianceFailure, setComplianceFailure] = useState<any>(null);
   const { toast } = useToast();
+
+  // Clear compliance failure when any input changes
+  useEffect(() => {
+    setComplianceFailure(null);
+  }, [selectedWallet, contractAddress, amount, nonce, denom]);
 
   const initializeSteps = (): ExecutionStep[] => [
     {
@@ -108,13 +360,57 @@ export default function TransactionExecution() {
           nonce: nonce,
         }
       );
-      console.log(response);
-
       const data = response.data;
+      console.log(data);
+      if (data && data.success === false) {
+        setComplianceFailure(data);
+        updateStepStatus(1, "error", data);
+        throw new Error(data.error || "Compliance check failed");
+      }
       setSignatureData(data);
       updateStepStatus(1, "success", data);
       return data;
     } catch (error) {
+      if (axios.isAxiosError(error)) {
+        if (error.response) {
+          const { status, data: errData } = error.response;
+
+          // Handle compliance errors for specific HTTP status codes
+          if (
+            status === 403 ||
+            status === 500 ||
+            (errData && errData.success === false)
+          ) {
+            setComplianceFailure(
+              errData || {
+                success: false,
+                error: `HTTP ${status}: ${error.response.statusText}`,
+                failedChecks: [
+                  `Server returned ${status} status code indicating a compliance or server error.`,
+                ],
+              }
+            );
+            updateStepStatus(1, "error", {
+              error:
+                errData?.error || `Compliance check failed (HTTP ${status})`,
+            });
+            throw new Error(
+              errData?.error || `Compliance check failed (HTTP ${status})`
+            );
+          }
+
+          // Handle other HTTP errors
+          setComplianceFailure(errData);
+          updateStepStatus(1, "error", {
+            error: errData?.error || "Request failed",
+          });
+          throw new Error(errData?.error || "Request failed");
+        } else if (error.request) {
+          // Network error
+          updateStepStatus(1, "error", { error: "Network error" });
+          throw new Error("Network error - unable to reach server");
+        }
+      }
       updateStepStatus(1, "error");
       throw error;
     }
@@ -153,9 +449,26 @@ export default function TransactionExecution() {
         }
       );
       const data = response.data;
+
+      if (data && data.success === false) {
+        setComplianceFailure(data);
+        updateStepStatus(2, "error", data);
+        throw new Error(
+          data.error || "Transaction execution failed due to compliance issues"
+        );
+      }
+
       updateStepStatus(2, "success", data);
       return data;
     } catch (error) {
+      if (axios.isAxiosError(error) && error.response && error.response.data) {
+        const errData = error.response.data;
+        if (errData.success === false) {
+          setComplianceFailure(errData);
+        }
+        updateStepStatus(2, "error", errData);
+        throw new Error(errData.error || "Transaction execution failed");
+      }
       updateStepStatus(2, "error");
       throw error;
     }
@@ -174,6 +487,7 @@ export default function TransactionExecution() {
     setIsExecuting(true);
     setExecutionSteps(initializeSteps());
     setSignatureData(null);
+    // Do not clear complianceFailure here; clear it only when user changes input
 
     try {
       // Step 1: Get oracle signature
@@ -187,12 +501,15 @@ export default function TransactionExecution() {
         description: "Transaction completed successfully!",
       });
     } catch (error) {
-      toast({
-        title: "Execution Failed",
-        description:
-          error instanceof Error ? error.message : "Unknown error occurred",
-        variant: "destructive",
-      });
+      // If complianceFailure is set, don't show generic error toast
+      if (!complianceFailure) {
+        toast({
+          title: "Execution Failed",
+          description:
+            error instanceof Error ? error.message : "Unknown error occurred",
+          variant: "destructive",
+        });
+      }
     } finally {
       setIsExecuting(false);
     }
@@ -228,6 +545,8 @@ export default function TransactionExecution() {
           process
         </p>
       </div>
+
+      {complianceFailure && <ComplianceFailure result={complianceFailure} />}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Transaction Form */}

@@ -8,13 +8,14 @@ export function getTransactionDetails(data: any) {
   const results: any[] = [];
   if (data && data.tx && data.tx.body && data.tx.body.messages) {
     const timestamp = data.tx_response.timestamp;
+    const hash = data.tx_response.txhash;
     data.tx.body.messages.forEach((message: any) => {
       if (message["@type"] === "/cosmos.bank.v1beta1.MsgSend") {
         const sender = message.from_address;
         const receiver = message.to_address;
         const amount = message.amount[0].amount;
         const denom = message.amount[0].denom;
-        results.push({ timestamp, sender, receiver, amount, denom });
+        results.push({ hash, timestamp, sender, receiver, amount, denom });
       }
     });
   }

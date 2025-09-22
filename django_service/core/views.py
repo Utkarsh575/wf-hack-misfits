@@ -14,14 +14,17 @@ def compute_risk_score(request):
         return Response({"error": "Wallet address is required."}, status=status.HTTP_400_BAD_REQUEST)
     
 
-    risk_score = invoke_agent(wallet_address)
+
+    risk_score, failed_checks = invoke_agent(wallet_address)
 
     # Ensure the saved risk_score is an integer and overwrite existing value
     obj, created = AMLRequest.objects.update_or_create(
-        wallet_address= wallet_address,
-        defaults= {'risk_score': int(risk_score)},
+        wallet_address=wallet_address,
+        defaults={'risk_score': int(risk_score)},
     )
 
     serializer = AMLRequestSerializer(obj)
-    return Response(serializer.data, status=status.HTTP_200_OK)
+    data = serializer.data
+    data['failed_checks'] = failed_checks
+    return Response(data, status=status.HTTP_200_OK)
     
