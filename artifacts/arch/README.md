@@ -155,5 +155,4 @@ graph TD
 
 ---
 
-## Architecture Diagram (Image)
 
